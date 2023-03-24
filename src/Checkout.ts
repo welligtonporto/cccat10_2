@@ -3,6 +3,7 @@ import CouponRepositoryDatabase from "./CouponRepositoryDatabase";
 import CurrencyGateway from "./CurrencyGateway";
 import CurrencyGatewayHttp from "./CurrencyGatewayHttp";
 import OrderRepository from "./OrderRepository";
+import OrderRepositoryDatabase from "./OrderRepositoryDatabase";
 import ProductRepository from "./ProductRepository";
 import ProductRepositoryDatabase from "./ProductRepositoryDatabase";
 import { validate } from "./validator";
@@ -12,7 +13,7 @@ export default class Checkout {
 	constructor (
 		readonly currencyGateway: CurrencyGateway = new CurrencyGatewayHttp(),
 		readonly productRepository: ProductRepository = new ProductRepositoryDatabase(),
-		readonly couponRepository: CouponRepository = new CouponRepositoryDatabase()
+		readonly couponRepository: CouponRepository = new CouponRepositoryDatabase(),
 		readonly orderRepository: OrderRepository = new OrderRepositoryDatabase()
 	) {
 	}
@@ -55,9 +56,13 @@ export default class Checkout {
 		if (input.from && input.to) {
 			output.total += output.freight;
 		}
+		const year = new Date().getFullYear();
+		const sequence = await this.orderRepository.count();
+		const code = `${year}${new String(sequence).padStart(8, "0")}`;
 		const order = {
 			idOrder: input.uuid,
 			total: output.total,
+			code,
 			freight: output.freight,
 			cpf: input.cpf,
 			items: input.items

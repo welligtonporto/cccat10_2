@@ -34,6 +34,7 @@ insert into cccat10.coupon (code, percentage, expire_date) values ('VALE10', 10,
 create table cccat10.order (
 	id_order text,
 	cpf text,
+	code text,
 	total numeric,
 	freight numeric
 );
