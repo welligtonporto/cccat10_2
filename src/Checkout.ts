@@ -2,7 +2,7 @@ import CouponRepository from "./CouponRepository";
 import CouponRepositoryDatabase from "./CouponRepositoryDatabase";
 import CurrencyGateway from "./CurrencyGateway";
 import CurrencyGatewayHttp from "./CurrencyGatewayHttp";
-import FreightCalculator from "./FreightCalculator";
+import OrderRepository from "./OrderRepository";
 import ProductRepository from "./ProductRepository";
 import ProductRepositoryDatabase from "./ProductRepositoryDatabase";
 import { validate } from "./validator";
@@ -13,6 +13,7 @@ export default class Checkout {
 		readonly currencyGateway: CurrencyGateway = new CurrencyGatewayHttp(),
 		readonly productRepository: ProductRepository = new ProductRepositoryDatabase(),
 		readonly couponRepository: CouponRepository = new CouponRepositoryDatabase()
+		readonly orderRepository: OrderRepository = new OrderRepositoryDatabase()
 	) {
 	}
 
@@ -36,11 +37,11 @@ export default class Checkout {
 				} else {
 					output.total += parseFloat(productData.price) * item.quantity;
 				}
-				// const volume = productData.width/100 * productData.height/100 * productData.length/100;
-				// const density = parseFloat(productData.weight)/volume;
-				// const itemFreight = 1000 * volume * (density/100);
-				const itemFreight = FreightCalculator.calculate(productData);
+				const volume = productData.width/100 * productData.height/100 * productData.length/100;
+				const density = parseFloat(productData.weight)/volume;
+				const itemFreight = 1000 * volume * (density/100);
 				output.freight += Math.max(itemFreight, 10) * item.quantity;
+				item.price = parseFloat(productData.price);
 				items.push(item.idProduct);
 			}
 		}
@@ -54,13 +55,22 @@ export default class Checkout {
 		if (input.from && input.to) {
 			output.total += output.freight;
 		}
+		const order = {
+			idOrder: input.uuid,
+			total: output.total,
+			freight: output.freight,
+			cpf: input.cpf,
+			items: input.items
+		}
+		await this.orderRepository.save(order)
 		return output;
 	}
 }
 
 type Input = {
+	uuid?: string,
 	cpf: string,
-	items: { idProduct: number, quantity: number }[],
+	items: { idProduct: number, quantity: number, price?: number }[],
 	coupon?: string,
 	from?: string,
 	to?: string
